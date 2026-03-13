@@ -14,7 +14,7 @@
 <div class="content">
 
 <div class="container">
-<h2>Homimis Clicker</h2>
+<h2><img src="Снимок экрана 2026-03-12 211303.png" alt="homimis clicker ultimate"></h2>
 
 <div class="stat">Клики: <b id="clicks">0</b></div>
 <div class="stat">Сила клика: <b id="cpc">1</b> (x<span id="mult-val">1</span>)</div>
@@ -29,6 +29,10 @@
 
 <button id="buy-auto" class="shop-btn">
 Купить Автоклик (+1/сек) — Цена: 500
+</button>
+
+<button id="rebirth" class="shop-btn reb">
+Перерождение — Цена: 2000
 </button>
 
 </div>
@@ -69,19 +73,18 @@ window.location.href = "login.html";
 
 const userKey = `clicker_data_${currentUser}`;
 
-let savedData = JSON.parse(localStorage.getItem(userKey)) || {
-score:0,
-power:1,
-auto:0,
-powerPrice:100,
-autoPrice:500
-};
+let savedData = JSON.parse(localStorage.getItem(userKey)) || {};
 
-let score = Number(savedData.score);
-let power = Number(savedData.power);
-let auto = Number(savedData.auto);
-let powerPrice = savedData.powerPrice || 100;
-let autoPrice = savedData.autoPrice || 500;
+let score = Number(savedData.score) || 0;
+let power = Number(savedData.power) || 1;
+let auto = Number(savedData.auto) || 0;
+let reb = Number(savedData.reb) || 0;
+
+let powerPrice = Number(savedData.powerPrice) || 100;
+let autoPrice = Number(savedData.autoPrice) || 500;
+let rebcost = Number(savedData.rebcost) || 2000;
+
+let multiplier = reb + 1;
 
 const display = document.getElementById("clicks");
 const powerDisplay = document.getElementById("cpc");
@@ -90,9 +93,13 @@ const leaderboardDiv = document.querySelector(".leaderboard");
 
 function updateUI(){
 
+multiplier = reb + 1;
+
 display.innerText = Math.floor(score);
 powerDisplay.innerText = power;
 autoDisplay.innerText = auto;
+
+document.getElementById("mult-val").innerText = multiplier;
 
 document.getElementById("buy-power").innerText =
 `Улучшить клик (+1) — Цена: ${Math.floor(powerPrice)}`;
@@ -100,12 +107,17 @@ document.getElementById("buy-power").innerText =
 document.getElementById("buy-auto").innerText =
 `Купить Автоклик (+1/сек) — Цена: ${Math.floor(autoPrice)}`;
 
+document.getElementById("rebirth").innerText =
+`Перерождение — Цена: ${Math.floor(rebcost)}`;
+
 localStorage.setItem(userKey, JSON.stringify({
 score,
 power,
 auto,
+reb,
 powerPrice,
-autoPrice
+autoPrice,
+rebcost
 }));
 
 db.ref("leaderboard/"+currentUser).set({
@@ -152,7 +164,7 @@ leaderboardDiv.appendChild(div);
 }
 
 document.getElementById("btn-main").onclick=()=>{
-score+=power;
+score += power * multiplier;
 updateUI();
 };
 
@@ -184,10 +196,31 @@ updateUI();
 
 };
 
+document.getElementById("rebirth").onclick=()=>{
+
+if(score>=rebcost){
+
+score=0;
+power=1;
+auto=0;
+
+reb+=1;
+
+rebcost=Math.floor(rebcost*2);
+
+powerPrice=100;
+autoPrice=500;
+
+updateUI();
+
+}
+
+};
+
 setInterval(()=>{
 
 if(auto>0){
-score+=auto;
+score += auto * multiplier;
 updateUI();
 }
 
