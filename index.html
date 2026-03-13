@@ -42,24 +42,39 @@
 
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
 <script>
+
+const firebaseConfig = {
+apiKey: "AIzaSyDgbu83QS0FIW4fO1-nfeq_CqMS2DpECow",
+authDomain: "homimis-clicker-ultimate.firebaseapp.com",
+databaseURL: "https://homimis-clicker-ultimate-default-rtdb.europe-west1.firebasedatabase.app",
+projectId: "homimis-clicker-ultimate",
+storageBucket: "homimis-clicker-ultimate.firebasestorage.app",
+messagingSenderId: "1070878684087",
+appId: "1:1070878684087:web:39dfb0f6c9429291aa6e32",
+measurementId: "G-3PWQE85YNB"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
 const currentUser = localStorage.getItem('currentUser');
 
 if (!currentUser) {
-    window.location.href = 'login.html';
+window.location.href = "login.html";
 }
-
-document.getElementById("logout-btn").innerText =
-"Выйти (" + currentUser + ")";
 
 const userKey = `clicker_data_${currentUser}`;
 
 let savedData = JSON.parse(localStorage.getItem(userKey)) || {
-    score: 0,
-    power: 1,
-    auto: 0,
-    powerPrice: 100,
-    autoPrice: 500
+score:0,
+power:1,
+auto:0,
+powerPrice:100,
+autoPrice:500
 };
 
 let score = Number(savedData.score);
@@ -68,148 +83,119 @@ let auto = Number(savedData.auto);
 let powerPrice = savedData.powerPrice || 100;
 let autoPrice = savedData.autoPrice || 500;
 
-const display = document.getElementById('clicks');
-const powerDisplay = document.getElementById('cpc');
-const autoDisplay = document.getElementById('auto-val');
-const leaderboardDiv = document.querySelector('.leaderboard');
+const display = document.getElementById("clicks");
+const powerDisplay = document.getElementById("cpc");
+const autoDisplay = document.getElementById("auto-val");
+const leaderboardDiv = document.querySelector(".leaderboard");
 
-function updateUI() {
-
-if (!powerPrice || powerPrice < 1) powerPrice = 100;
-if (!autoPrice || autoPrice < 1) autoPrice = 500;
+function updateUI(){
 
 display.innerText = Math.floor(score);
 powerDisplay.innerText = power;
 autoDisplay.innerText = auto;
 
-document.getElementById('buy-power').innerText =
+document.getElementById("buy-power").innerText =
 `Улучшить клик (+1) — Цена: ${Math.floor(powerPrice)}`;
 
-document.getElementById('buy-auto').innerText =
+document.getElementById("buy-auto").innerText =
 `Купить Автоклик (+1/сек) — Цена: ${Math.floor(autoPrice)}`;
 
-const dataToSave = {
+localStorage.setItem(userKey, JSON.stringify({
 score,
 power,
 auto,
 powerPrice,
 autoPrice
+}));
+
+db.ref("leaderboard/"+currentUser).set({
+name:currentUser,
+score:score
+});
+
+}
+
+function renderLeaderboard(){
+
+db.ref("leaderboard")
+.orderByChild("score")
+.limitToLast(10)
+.on("value", snapshot=>{
+
+leaderboardDiv.innerHTML="<h1>Leaderboard</h1>";
+
+let players=[];
+
+snapshot.forEach(child=>{
+players.push(child.val());
+});
+
+players.reverse();
+
+players.forEach((player,index)=>{
+
+const div=document.createElement("div");
+
+if(player.name===currentUser){
+div.style.color="gold";
+div.style.fontWeight="bold";
+}
+
+div.innerHTML=`${index+1}. ${player.name} — ${Math.floor(player.score)}`;
+
+leaderboardDiv.appendChild(div);
+
+});
+
+});
+
+}
+
+document.getElementById("btn-main").onclick=()=>{
+score+=power;
+updateUI();
 };
 
-localStorage.setItem(userKey, JSON.stringify(dataToSave));
-}
+document.getElementById("buy-power").onclick=()=>{
 
-function renderLeaderboard() {
+if(score>=powerPrice){
 
-leaderboardDiv.innerHTML = '<h1>Leaderboard:</h1>';
-
-let allPlayers = [];
-
-for (let i = 0; i < localStorage.length; i++) {
-
-let key = localStorage.key(i);
-
-if (key.startsWith('clicker_data_')) {
-
-let name = key.replace('clicker_data_', '');
-let data = JSON.parse(localStorage.getItem(key));
-
-allPlayers.push({
-name: name,
-score: data.score
-});
-}
-}
-
-allPlayers.sort((a, b) => b.score - a.score);
-
-allPlayers.slice(0, 10).forEach((player, index) => {
-
-const item = document.createElement('div');
-
-if (player.name === currentUser) {
-item.style.color = "gold";
-item.style.fontWeight = "bold";
-}
-
-item.innerHTML =
-`${index + 1}. ${player.name} — ${Math.floor(player.score)}`;
-
-leaderboardDiv.appendChild(item);
-});
-}
-
-function logout() {
-localStorage.removeItem('currentUser');
-window.location.href = 'login.html';
-}
-
-document.getElementById("logout-btn").onclick = logout;
-
-document.getElementById('btn-main').addEventListener('click', () => {
-
-score += power;
-
-updateUI();
-
-});
-
-document.getElementById('buy-power').addEventListener('click', () => {
-
-if (score >= powerPrice) {
-
-score -= powerPrice;
-
-power += 1;
-
-powerPrice = Math.floor(powerPrice * 1.5);
-
-updateUI();
-
-} else {
-
-alert("Недостаточно кликов!");
-
-}
-
-});
-
-document.getElementById('buy-auto').addEventListener('click', () => {
-
-if (score >= autoPrice) {
-
-score -= autoPrice;
-
-auto += 1;
-
-autoPrice = Math.floor(autoPrice * 1.5);
-
-updateUI();
-
-} else {
-
-alert("Недостаточно кликов!");
-
-}
-
-});
-
-setInterval(() => {
-
-if (auto > 0) {
-
-score += auto;
+score-=powerPrice;
+power+=1;
+powerPrice=Math.floor(powerPrice*1.5);
 
 updateUI();
 
 }
 
-}, 1000);
+};
 
-setInterval(renderLeaderboard, 3000);
+document.getElementById("buy-auto").onclick=()=>{
+
+if(score>=autoPrice){
+
+score-=autoPrice;
+auto+=1;
+autoPrice=Math.floor(autoPrice*1.5);
 
 updateUI();
+
+}
+
+};
+
+setInterval(()=>{
+
+if(auto>0){
+score+=auto;
+updateUI();
+}
+
+},1000);
+
 renderLeaderboard();
+updateUI();
+
 </script>
 
 </body>
