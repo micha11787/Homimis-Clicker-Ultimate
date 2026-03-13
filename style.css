@@ -71,3 +71,10 @@ img{
     box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
     width: 200px;
 }
+
+.reb{
+    background-color: gold;
+}
+.reb:hover{
+    background-color: rgb(255, 228, 74);
+}
